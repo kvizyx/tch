@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"tch/libs/errfatal"
 
 	"github.com/fatih/color"
@@ -31,7 +32,7 @@ func main() {
 		errfatal.Print(ErrNoPathsSpecified)
 	}
 
-	if hasEqualStrings(args, bannedNames) {
+	if hasBannedNames(args, bannedNames) {
 		errfatal.Print(ErrBannedName)
 	}
 
@@ -49,14 +50,21 @@ func main() {
 	}
 }
 
-func hasEqualStrings(first, second []string) bool {
-	table := make(map[string]bool, len(first))
+func hasBannedNames(args, bannedNames []string) bool {
+	table := make(map[string]bool, len(args))
 
-	for _, s := range first {
-		table[s] = true
+	for _, s := range args {
+		fileParts := strings.Split(s, ".")
+		fileName := fileParts[0]
+
+		if len(fileParts) > 2 {
+			table[s] = true
+		} else {
+			table[fileName] = true
+		}
 	}
 
-	for _, s := range second {
+	for _, s := range bannedNames {
 		if table[s] {
 			return true
 		}
