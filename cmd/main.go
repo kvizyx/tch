@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,17 +28,43 @@ var bannedNames = []string{
 }
 
 func main() {
-	args := os.Args[1:]
+	filePaths := os.Args[1:]
 
-	if len(args) == 0 {
+	if len(filePaths) == 0 {
 		errfatal.Print(ErrNoPathsSpecified)
 	}
 
-	if hasBannedNames(args, bannedNames) {
+	if hasBannedNames(filePaths, bannedNames) {
 		errfatal.Print(ErrBannedName)
 	}
 
-	for _, path := range args {
+main: // vahui
+	for _, path := range filePaths {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			reader := bufio.NewReader(os.Stdin)
+
+		loop: // vahui
+			for {
+				fmt.Printf("File %s already exists. Overwrite it? [Y/n] ", color.GreenString(path))
+
+				s, err := reader.ReadString('\n')
+				if err != nil {
+					color.Red("Error: Cannot read string")
+				}
+
+				input := strings.ToLower(strings.TrimSpace(s))
+
+				switch input {
+				case "y", "":
+					break loop
+				case "n":
+					continue main
+				default:
+					break
+				}
+			}
+		}
+
 		err := os.MkdirAll(filepath.Dir(path), os.ModePerm)
 		if err != nil {
 			errfatal.Print(ErrCannotCreateDirs)
@@ -50,10 +78,10 @@ func main() {
 	}
 }
 
-func hasBannedNames(args, bannedNames []string) bool {
-	table := make(map[string]bool, len(args))
+func hasBannedNames(filePaths, bannedNames []string) bool {
+	table := make(map[string]bool, len(filePaths))
 
-	for _, s := range args {
+	for _, s := range filePaths {
 		fileParts := strings.Split(s, ".")
 		fileName := fileParts[0]
 
