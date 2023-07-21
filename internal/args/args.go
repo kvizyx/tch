@@ -1,11 +1,14 @@
 package args
 
 import (
+	"errors"
 	"fmt"
-	"github.com/fatih/color"
 	"os"
 	"strings"
+
 	"tch/internal/userio"
+
+	"github.com/fatih/color"
 )
 
 // File is wrapper for file path with some options
@@ -31,12 +34,12 @@ var bannedPaths = []string{
 }
 
 // Parse each row argument from user input to File wrapper
-func Parse(rowArgs []string) []File {
+func Parse(rowArgs []string) ([]File, error) {
 	files := make([]File, len(rowArgs))
 	user := userio.NewUserIO()
 
 	if len(rowArgs) == 0 {
-		user.OutputError(ErrNoPathsSpecified)
+		return nil, errors.New(ErrNoPathsSpecified)
 	}
 
 	if hasBannedPaths(rowArgs, bannedPaths) {
@@ -50,19 +53,22 @@ func Parse(rowArgs []string) []File {
 		}
 
 		if _, err := os.Stat(file); !os.IsNotExist(err) {
-			message := fmt.Sprintf("File %s already exists. Overwrite it? [Y/n] ", color.GreenString(file))
+			message := fmt.Sprintf(
+				"File %s already exists. Overwrite it? [Y/n] ",
+				color.GreenString(file),
+			)
 			permitted := getPermission(user, message)
-
 			dummyFile.Permitted = permitted
 		}
 
 		files = append(files, dummyFile)
 	}
 
-	return files
+	return files, nil
 }
 
-// getPermission asks the user for permission to overwrite existing file with given message
+// getPermission asks the user for permission to overwrite
+// existing file with given message
 func getPermission(user userio.UserIO, message string) bool {
 	var (
 		correct   = false
@@ -70,11 +76,11 @@ func getPermission(user userio.UserIO, message string) bool {
 	)
 
 	for !correct {
-		s, _ := user.InputString(message, '\n')
+		answer, _ := user.InputString(message, '\n')
 
-		s = strings.ToLower(strings.TrimSpace(s))
+		answer = strings.ToLower(strings.TrimSpace(answer))
 
-		switch s {
+		switch answer {
 		case "y", "":
 			correct = true
 			permitted = true
@@ -88,23 +94,24 @@ func getPermission(user userio.UserIO, message string) bool {
 	return permitted
 }
 
-// hasBannedPaths checks if the user input contains banned paths
-func hasBannedPaths(filePaths, bannedNames []string) bool {
-	table := make(map[string]bool, len(filePaths))
+// hasBannedPaths checks if the paths entered by user
+// contains banned paths to notify about it if there are any
+func hasBannedPaths(filePaths, bannedPaths []string) bool {
+	userPaths := make(map[string]bool, len(filePaths))
 
 	for _, path := range filePaths {
 		fileParts := strings.Split(path, ".")
 		fileName := fileParts[0]
 
 		if len(fileParts) > 2 {
-			table[path] = true
+			userPaths[path] = true
 		} else {
-			table[fileName] = true
+			userPaths[fileName] = true
 		}
 	}
 
-	for _, s := range bannedPaths {
-		if table[s] {
+	for _, path := range bannedPaths {
+		if userPaths[path] {
 			return true
 		}
 	}

@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+
 	"tch/internal/args"
 	"tch/internal/userio"
 )
@@ -16,7 +17,10 @@ func main() {
 	rowArgs := os.Args[1:]
 
 	user := userio.NewUserIO()
-	files := args.Parse(rowArgs)
+	files, err := args.Parse(rowArgs)
+	if err != nil {
+		user.OutputFatal(err.Error())
+	}
 
 	for _, file := range files {
 		if !file.Permitted {
